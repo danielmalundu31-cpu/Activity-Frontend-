@@ -1,0 +1,5 @@
+// js/config.js
+// The backend address to be added in Activity 8
+export const config = {
+    backendBaseUrl: ""
+};

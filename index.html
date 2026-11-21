@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Campus Maintenance Requests</title>
+    <link rel="stylesheet" href="./css/styles.css">
+</head>
+
+<body>
+
+    <!-- Header & Navigation -->
+    <header class="site-header">
+        <div class="header-container">
+            <h1>Campus Maintenance Requests</h1>
+            <p class="subtitle">Mulungushi University ICT251 - Activity 6 Frontend</p>
+            <nav class="site-nav">
+                <a href="#home" class="nav-link active" data-target="home">Home</a>
+                <a href="#manage" class="nav-link" data-target="manage">Manage Records</a>
+                <a href="#about" class="nav-link" data-target="about">About</a>
+            </nav>
+        </div>
+    </header>
+
+    <main id="main-content" class="main-container">
+
+        <!-- HOME SECTION -->
+        <section id="home" class="page-section active">
+            <div class="card intro-card">
+                <h2>Welcome to the Campus Maintenance System</h2>
+                <p>Report and track campus maintenance issues such as broken lights, leaking taps, or damaged furniture
+                    across university buildings. Use the navigation above to manage records or view system information.
+                </p>
+                <button class="btn primary-btn" id="goto-manage-btn">Go to Manage Records</button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-number" id="total-count">0</span>
+                    <span class="stat-label">Total Requests</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="pending-count">0</span>
+                    <span class="stat-label">Pending</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="completed-count">0</span>
+                    <span class="stat-label">Completed</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- MANAGE RECORDS SECTION -->
+        <section id="manage" class="page-section">
+            <div class="manage-layout">
+
+                <!-- Form Column -->
+                <div class="card form-card">
+                    <h2 id="form-heading">Add New Request</h2>
+                    <form id="record-form">
+                        <input type="hidden" id="record-id">
+
+                        <div class="form-group">
+                            <label for="title">Title <span class="required">*</span></label>
+                            <input type="text" id="title" required minlength="3" maxlength="80"
+                                placeholder="e.g., Broken classroom light">
+                            <small class="hint">3 to 80 characters</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="category">Category <span class="required">*</span></label>
+                            <select id="category" required>
+                                <option value="">Select category...</option>
+                                <option value="Electrical">Electrical</option>
+                                <option value="Plumbing">Plumbing</option>
+                                <option value="Furniture">Furniture</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="description">Description <span class="required">*</span></label>
+                            <textarea id="description" required minlength="5" maxlength="300" rows="4"
+                                placeholder="Describe the issue clearly..."></textarea>
+                            <small class="hint">5 to 300 characters</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="status">Status <span class="required">*</span></label>
+                            <select id="status" required>
+                                <option value="Pending">Pending</option>
+                                <option value="In progress">In progress</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn primary-btn" id="save-btn">Save Record</button>
+                            <button type="button" class="btn secondary-btn" id="cancel-btn"
+                                style="display: none;">Cancel Edit</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- List & Controls Column -->
+                <div class="records-container">
+                    <div class="card controls-card">
+                        <div class="search-filter-grid">
+                            <div class="form-group">
+                                <label for="search-input">Search by Title</label>
+                                <input type="text" id="search-input" placeholder="Type to search...">
+                            </div>
+                            <div class="form-group">
+                                <label for="filter-status">Filter by Status</label>
+                                <select id="filter-status">
+                                    <option value="All">All Statuses</option>
+                                    <option value="Pending">Pending</option>
+                                    <option value="In progress">In progress</option>
+                                    <option value="Completed">Completed</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="results-info">
+                            Showing <span id="displayed-count">0</span> matching records
+                        </div>
+                    </div>
+
+                    <div id="feedback-message" class="feedback-message" style="display: none;"></div>
+
+                    <!-- Records Grid / List Area -->
+                    <div id="records-list" class="record-grid">
+                        <!-- Dynamically populated via app.js -->
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ABOUT SECTION -->
+        <section id="about" class="page-section">
+            <div class="card about-card">
+                <h2>About This Project</h2>
+                <p><strong>Project Name:</strong> Campus Maintenance Requests System</p>
+                <p><strong>Student Name:</strong> Daniel Malundu</p>
+                <p><strong>Student Number:</strong> [202501510]</p>
+                <p><strong>Course:</strong> ICT251 Introduction to Web Technologies</p>
+                <hr class="divider">
+                <p class="tech-note"><em>Note:</em> This version of the application uses browser demonstration data
+                    (`localStorage`) for Activity 6[cite: 1, 2, 4]. Activities 7 and 8 will introduce an independent
+                    Node.js backend and full API integration[cite: 1].</p>
+            </div>
+        </section>
+
+    </main>
+    <!-- VIEW RECORD MODAL -->
+    <div id="view-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <span id="modal-id-badge" class="record-id-badge">ID: #</span>
+                <button type="button" id="close-modal-btn" class="close-btn" aria-label="Close modal">&times;</button>
+            </div>
+            <span id="modal-category" class="record-category">Category</span>
+            <h2 id="modal-title" class="modal-title">Record Title</h2>
+            <p id="modal-desc" class="modal-desc">Full description goes here...</p>
+            <div class="modal-footer">
+                <span id="modal-status" class="status-badge">Status</span>
+                <button type="button" id="modal-done-btn" class="btn primary-btn"
+                    style="width: auto; padding: 0.5rem 1.25rem;">Close</button>
+            </div>
+        </div>
+    </div>
+    <footer class="site-footer">
+        <p>&copy; 2026 Mulungushi University School of Engineering and Technology</p>
+    </footer>
+
+    <script type="module" src="./js/app.js"></script>
+</body>
+
+</html>
