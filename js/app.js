@@ -19,12 +19,13 @@ const saveBtn = document.getElementById("save-btn");
 const recordIdInput = document.getElementById("record-id");
 
 let allRecords = [];
+let feedbackTimeoutId = null;
 
 // Initialize App on DOM load
 document.addEventListener("DOMContentLoaded", async () => {
     setupNavigation();
-    await loadAndRenderRecords();
     setupEventListeners();
+    await loadAndRenderRecords();
 });
 
 // Navigation Handling
@@ -56,11 +57,31 @@ function setupNavigation() {
 
 // Load and Render Records
 async function loadAndRenderRecords() {
+    recordsListContainer.innerHTML = "";
+    const loadingEl = document.createElement("p");
+    loadingEl.className = "text-muted";
+    loadingEl.style.gridColumn = "span 2";
+    loadingEl.style.textAlign = "center";
+    loadingEl.style.padding = "2rem";
+    loadingEl.textContent = "Loading records...";
+    recordsListContainer.appendChild(loadingEl);
+
     try {
-        allRecords = await recordService.list();
+        const records = await recordService.list();
+        allRecords = Array.isArray(records) ? records : [];
         updateStats(allRecords);
         filterAndRenderList();
     } catch (error) {
+        allRecords = [];
+        updateStats([]);
+        recordsListContainer.innerHTML = "";
+        const errorEl = document.createElement("p");
+        errorEl.className = "text-muted";
+        errorEl.style.gridColumn = "span 2";
+        errorEl.style.textAlign = "center";
+        errorEl.style.padding = "2rem";
+        errorEl.textContent = error.message || "Unable to load records.";
+        recordsListContainer.appendChild(errorEl);
         showFeedback(error.message, "error");
     }
 }
@@ -90,7 +111,11 @@ function filterAndRenderList() {
     const selectedStatus = filterStatus.value;
 
     const filtered = allRecords.filter(record => {
-        const matchesSearch = record.title.toLowerCase().includes(searchTerm);
+        const matchesSearch =
+            !searchTerm ||
+            record.title.toLowerCase().includes(searchTerm) ||
+            record.category.toLowerCase().includes(searchTerm) ||
+            record.description.toLowerCase().includes(searchTerm);
         const matchesStatus = selectedStatus === "All" || record.status === selectedStatus;
         return matchesSearch && matchesStatus;
     });
@@ -104,7 +129,13 @@ function renderRecords(records) {
     displayedCountEl.textContent = records.length;
 
     if (records.length === 0) {
-        recordsListContainer.innerHTML = `<p class="text-muted" style="grid-column: span 2; text-align: center; padding: 2rem;">No matching records found.</p>`;
+        const emptyEl = document.createElement("p");
+        emptyEl.className = "text-muted";
+        emptyEl.style.gridColumn = "span 2";
+        emptyEl.style.textAlign = "center";
+        emptyEl.style.padding = "2rem";
+        emptyEl.textContent = "No matching records found.";
+        recordsListContainer.appendChild(emptyEl);
         return;
     }
 
@@ -149,16 +180,19 @@ function renderRecords(records) {
         actionsEl.className = "record-actions";
 
         const viewBtn = document.createElement("button");
+        viewBtn.type = "button";
         viewBtn.className = "action-btn view-btn";
         viewBtn.textContent = "View";
-        viewBtn.addEventListener("click", () => openViewModal(record));
+        viewBtn.addEventListener("click", () => openViewModal(record.id));
 
         const editBtn = document.createElement("button");
+        editBtn.type = "button";
         editBtn.className = "action-btn edit-btn";
         editBtn.textContent = "Edit";
         editBtn.addEventListener("click", () => populateFormForEdit(record));
 
         const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
         deleteBtn.className = "action-btn delete-btn";
         deleteBtn.textContent = "Delete";
         deleteBtn.addEventListener("click", () => confirmAndDelete(record.id));
@@ -203,6 +237,9 @@ async function handleFormSubmit(e) {
     }
 
     const recordData = { title, category, description, status };
+    const originalBtnText = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = id ? "Updating..." : "Saving...";
 
     try {
         if (id) {
@@ -217,6 +254,9 @@ async function handleFormSubmit(e) {
         await loadAndRenderRecords();
     } catch (error) {
         showFeedback(error.message, "error");
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = id ? "Update Record" : originalBtnText;
     }
 }
 
@@ -262,19 +302,16 @@ async function confirmAndDelete(id) {
 }
 
 // View Record Modal Logic
-function openViewModal(record) {
+async function openViewModal(id) {
     const modal = document.getElementById("view-modal");
-    document.getElementById("modal-id-badge").textContent = `ID: ${record.id}`;
-    document.getElementById("modal-category").textContent = record.category;
-    document.getElementById("modal-title").textContent = record.title;
-    document.getElementById("modal-desc").textContent = record.description;
+    document.getElementById("modal-id-badge").textContent = `ID: ${id}`;
+    document.getElementById("modal-category").textContent = "Loading...";
+    document.getElementById("modal-title").textContent = "Loading record...";
+    document.getElementById("modal-desc").textContent = "Fetching record details from server.";
 
     const statusBadge = document.getElementById("modal-status");
-    statusBadge.textContent = record.status;
-    statusBadge.className = "status-badge";
-    if (record.status === "Pending") statusBadge.classList.add("status-pending");
-    if (record.status === "In progress") statusBadge.classList.add("status-in-progress");
-    if (record.status === "Completed") statusBadge.classList.add("status-completed");
+    statusBadge.textContent = "Pending";
+    statusBadge.className = "status-badge status-pending";
 
     modal.style.display = "flex";
 
@@ -282,15 +319,36 @@ function openViewModal(record) {
     document.getElementById("close-modal-btn").onclick = closeModal;
     document.getElementById("modal-done-btn").onclick = closeModal;
     modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+
+    try {
+        const record = await recordService.get(id);
+        document.getElementById("modal-id-badge").textContent = `ID: ${record.id}`;
+        document.getElementById("modal-category").textContent = record.category;
+        document.getElementById("modal-title").textContent = record.title;
+        document.getElementById("modal-desc").textContent = record.description;
+
+        statusBadge.textContent = record.status;
+        statusBadge.className = "status-badge";
+        if (record.status === "Pending") statusBadge.classList.add("status-pending");
+        if (record.status === "In progress") statusBadge.classList.add("status-in-progress");
+        if (record.status === "Completed") statusBadge.classList.add("status-completed");
+    } catch (error) {
+        document.getElementById("modal-title").textContent = "Error loading record";
+        document.getElementById("modal-desc").textContent = error.message;
+        showFeedback(error.message, "error");
+    }
 }
 
 // Feedback Message Utility
 function showFeedback(message, type) {
+    if (feedbackTimeoutId) {
+        clearTimeout(feedbackTimeoutId);
+    }
     feedbackEl.textContent = message;
     feedbackEl.className = `feedback-message ${type}`;
     feedbackEl.style.display = "block";
 
-    setTimeout(() => {
+    feedbackTimeoutId = setTimeout(() => {
         feedbackEl.style.display = "none";
     }, 4000);
 }
